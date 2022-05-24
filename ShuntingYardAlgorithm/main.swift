@@ -7,5 +7,188 @@
 
 import Foundation
 
-print("Hello, World!")
+class ShuntingYardAlgo {
+    private var values: [ExpressionElement] = []
+    private var isRpn: Bool = false
+    private var output: [ExpressionElement] = []
+    private var opStack: [Operator] = []
+    private var valuesStack: [Number] = []
 
+    init(expression: String) {
+        self.generateValuesArray(expression: expression)
+    }
+    
+    public func setNewExpression(expression: String) {
+        clearAll()
+        generateValuesArray(expression: expression)
+    }
+    
+    // returns the value of expression or -0.0 if an error occured
+    public func solve(
+        showRpn: Bool? = false,
+        showIsRpn: Bool? = false
+    ) -> Float {
+        shunt()
+        showIsRpn != nil && showIsRpn! ? print("isRpn: \(isRpn)") : nil
+        showRpn != nil && showRpn! && isRpn ? print("RPN stream: \(output)") : nil
+        return solveRpn()
+    }
+    
+    public func printCurrentState(
+        printOutput: Bool? = true,
+        printOpStack: Bool? = true,
+        printValues: Bool? = true,
+        printValuesStack: Bool? = false,
+        value: String? = nil,
+        text: String? = nil
+    ) -> Void {
+        if (printOutput != nil && printOutput!) {
+            print("output: \(output)")
+        }
+        if (printOpStack != nil && printOpStack!) {
+            print("opStack: \(opStack)")
+        }
+        if (printValues != nil && printValues!) {
+            print("values: \(values)")
+        }
+        if (printValuesStack != nil && printValuesStack!) {
+            print("valuesStack: \(valuesStack)")
+        }
+        if (value != nil) {
+            print("Current value: \(value!)")
+        }
+        if (text != nil) {
+            print(text!)
+        }
+    }
+    
+    private func clearAll() -> Void {
+        values = []
+        isRpn = false
+        output = []
+        opStack = []
+        valuesStack = []
+    }
+    
+    private func generateValuesArray(expression: String) -> Void {
+        let substrings = expression.split(separator: " ")
+        for sequence in substrings {
+            if (operators.contains(String(sequence))) {
+                values.append(Operator(value: String(sequence)))
+            } else {
+                values.append(Number(value: String(sequence)))
+            }
+        }
+    }
+    
+    private func shunt() -> Void {
+        for value in values {
+            if (value is Number) {
+                output.append(value)
+            } else {
+                let op: Operator = Operator(value: value.get())
+                if (opStack.isEmpty || op.get() == "(") {
+                    opStack.append(op)
+                } else {
+                    if (op.get() == ")") {
+                        var lastOperator = opStack.popLast()
+                        while (lastOperator!.get() != "(") {
+                            output.append(lastOperator!)
+                            lastOperator = opStack.popLast()
+                        }
+                    } else if (op.getPrecedence() > opStack.last!.getPrecedence()
+                               || opStack.last!.getPrecedence() == 0) {
+                        opStack.append(op)
+                    } else {
+                        var lastOperator = opStack.last
+                        while(lastOperator != nil
+                              && op.getPrecedence() <= lastOperator!.getPrecedence()) {
+                            output.append(opStack.popLast()!)
+                            lastOperator = opStack.last
+                        }
+                        opStack.append(op)
+                    }
+                }
+            }
+        }
+        
+        while (!opStack.isEmpty) {
+            let op = opStack.popLast()!;
+            output.append(op)
+        }
+        
+        checkForErrors()
+    }
+    
+    private func checkForErrors() -> Void {
+        var numberCount = 0
+        var operatorCount = 0
+        
+        for value in output {
+            operatorCount = value is Operator ? operatorCount + 1 : operatorCount
+            numberCount = value is Number ? numberCount + 1 : numberCount
+        }
+        
+        isRpn = numberCount == operatorCount + 1;
+    }
+    
+    // returns the value of expression or -0.0 if an error occured
+    private func solveRpn() -> Float {
+        if (isRpn) {
+            for value in output {
+                if (value is Number) {
+                    valuesStack.append(Number(value: value.get()))
+                } else {
+                    let rightValue = valuesStack.popLast()!
+                    let leftValue = valuesStack.popLast()!
+                    
+                    let rightValueFloat = Float(rightValue.get())!
+                    let leftValueFloat = Float(leftValue.get())!
+                    var result: Float = 0.0
+                    
+                    let op: OperatorEnum = operatorEnumDict[value.get()]!
+                    
+                    switch op {
+                    case .power:
+                        result = pow(leftValueFloat, rightValueFloat)
+                        break
+                    case .multiply:
+                        result = leftValueFloat * rightValueFloat
+                        break
+                    case .divide:
+                        if (rightValueFloat == 0) {
+                            return -0.0
+                        }
+                        result = leftValueFloat / rightValueFloat
+                        break
+                    case .add:
+                        result = leftValueFloat + rightValueFloat
+                        break
+                    case .substract:
+                        result = leftValueFloat - rightValueFloat
+                        break
+                    case .leftBrace:
+                        break
+                    case .rightBrace:
+                        break
+                    }
+                    
+                    valuesStack.append(Number(value: String(result)))
+                }
+            }
+            return Float(valuesStack.popLast()!.get())!
+        }
+        return -0.0;
+    }
+}
+
+// shunting yard algorithm example
+var shuntingYardAlgo = ShuntingYardAlgo(
+    expression: "2 + 3 * 4 - 5 + 7 * 6 / 3 - 2 * 3 ^ 2 + ( 5 - 2 ) * 2"
+)
+
+print("2 + 3 * 4 - 5 + 7 * 6 / 3 - 2 * 3 ^ 2 + ( 5 - 2 ) * 2 =" +
+      "\(shuntingYardAlgo.solve(showRpn: true, showIsRpn: true))")
+
+shuntingYardAlgo.setNewExpression(expression: "2 - 7 * ( 4 - 2 )")
+print("2 - 7 * ( 4 - 2 ) = \(shuntingYardAlgo.solve())")
