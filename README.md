@@ -4,4 +4,4 @@
 
 This algorithm assumes that the provided expression is correct
 
-For visualisation of this algorithm please refer to [JSFiddleProject](http://jsfiddle.net/7jh9f/2/) [by Michael Buen](https://twitter.com/ienablemuch)
+For visualisation of this algorithm please refer to [JSFiddleProject](http://jsfiddle.net/7jh9f/2/) by [Michael Buen](https://twitter.com/ienablemuch)
