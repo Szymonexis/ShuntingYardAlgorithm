@@ -18,7 +18,7 @@ class ShuntingYardAlgo {
         self.generateValuesArray(expression: expression)
     }
     
-    public func setNewExpression(expression: String) {
+    public func setNewExpression(expression: String) -> Void {
         clearAll()
         generateValuesArray(expression: expression)
     }
@@ -71,16 +71,46 @@ class ShuntingYardAlgo {
     }
     
     private func generateValuesArray(expression: String) -> Void {
-        let substrings = expression.split(separator: " ")
-        for sequence in substrings {
-            if (operators.contains(String(sequence))) {
-                values.append(Operator(value: String(sequence)))
+        let elements = convertNegativeNumbers(substrings: expression.split(separator: " "))
+        
+        for element in elements {
+            if (operators.contains(element)) {
+                values.append(Operator(value: element))
             } else {
-                values.append(Number(value: String(sequence)))
+                values.append(Number(value: element))
             }
         }
     }
     
+    private func convertNegativeNumbers(substrings: [String.SubSequence]) -> [String] {
+        var strings: [String] = []
+        
+        var thisElem: String.SubSequence? = nil
+        var prevElem: String.SubSequence? = nil
+        
+        for (index, element) in substrings.enumerated() {
+            prevElem = thisElem
+            thisElem = element
+            
+            if (thisElem == "-") {
+                if (index == 0) {
+                    strings.append("0")
+                    strings.append(String(thisElem!))
+                } else if (prevElem == "(") {
+                    strings.append("0")
+                    strings.append(String(thisElem!))
+                } else {
+                    strings.append(String(thisElem!))
+                }
+            } else {
+                strings.append(String(thisElem!))
+            }
+        }
+        
+        return strings
+    }
+    
+    // carries out the conversion from expression to RPN sequence
     private func shunt() -> Void {
         for value in values {
             if (value is Number) {
@@ -150,6 +180,9 @@ class ShuntingYardAlgo {
                     
                     switch op {
                     case .power:
+                        if (leftValueFloat == 0 && rightValueFloat == 0) {
+                            return -0.0
+                        }
                         result = pow(leftValueFloat, rightValueFloat)
                         break
                     case .multiply:
@@ -183,12 +216,6 @@ class ShuntingYardAlgo {
 }
 
 // shunting yard algorithm example
-var shuntingYardAlgo = ShuntingYardAlgo(
-    expression: "2 + 3 * 4 - 5 + 7 * 6 / 3 - 2 * 3 ^ 2 + ( 5 - 2 ) * 2"
-)
-
-print("2 + 3 * 4 - 5 + 7 * 6 / 3 - 2 * 3 ^ 2 + ( 5 - 2 ) * 2 =" +
-      "\(shuntingYardAlgo.solve(showRpn: true, showIsRpn: true))")
-
-shuntingYardAlgo.setNewExpression(expression: "2 - 7 * ( 4 - 2 )")
-print("2 - 7 * ( 4 - 2 ) = \(shuntingYardAlgo.solve())")
+var expression = "- 2 + 3 * 4 - 5 + 7 * 6 / 3 - 2 * 3 ^ 2 + ( 5 - 2 ) * 2 * ( - 3 )"
+var shuntingYardAlgo = ShuntingYardAlgo(expression: expression)
+print("\(expression) = \(shuntingYardAlgo.solve())")
